@@ -2,21 +2,16 @@ name: Wetter Nachricht
 
 on:
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '0 8 * * *'
   workflow_dispatch:
 
 jobs:
   wetter:
     runs-on: ubuntu-latest
     steps:
-      - name: Repo auschecken
-        uses: actions/checkout@v4
-
-      - name: Wetter abrufen und speichern
+      - name: Wetter abrufen und per ntfy schicken
         run: |
-          echo "Wetter am $(date '+%d.%m.%Y %H:%M'): $(curl -s wttr.in/Duesseldorf?format=%C+%t)" >> wetter.txt
-
-      - name: Änderung zurück committen
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "Automatisches Wetter-Update"
+          WETTER=$(curl -s "wttr.in/Duesseldorf?format=%C,+%t+(gef%C3%BChlt+%f),+Regen-Chance:+%p")
+          curl -H "Title: Guten Morgen! ☀️" \
+               -d "Wetter heute in Düsseldorf: $WETTER" \
+               ntfy.sh/lasse-wetter-8271
