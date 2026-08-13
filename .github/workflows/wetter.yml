@@ -11,7 +11,36 @@ jobs:
     steps:
       - name: Wetter abrufen und per ntfy schicken
         run: |
-          WETTER=$(curl -s "wttr.in/Duesseldorf?format=%C,+%t+(gef%C3%BChlt+%f),+Regen-Chance:+%p")
+          BESCHREIBUNG=$(curl -s "wttr.in/Duesseldorf?format=%C&m")
+          TEMP_RAW=$(curl -s "wttr.in/Duesseldorf?format=%t&m")
+          TEMP=$(echo "$TEMP_RAW" | tr -dc '0-9-')
+
+          if [ "$TEMP" -lt 0 ]; then
+            SPRUCH="Eiskalt, zieh dich warm an! 🥶"
+          elif [ "$TEMP" -lt 3 ]; then
+            SPRUCH="Ziemlich frisch heute. 🧣"
+          elif [ "$TEMP" -lt 6 ]; then
+            SPRUCH="Kalt, aber machbar. 🧤"
+          elif [ "$TEMP" -lt 9 ]; then
+            SPRUCH="Noch kühl, Jacke nicht vergessen. 🧥"
+          elif [ "$TEMP" -lt 12 ]; then
+            SPRUCH="Mild, aber Jacke bleibt Pflicht. 🍂"
+          elif [ "$TEMP" -lt 15 ]; then
+            SPRUCH="Angenehm für nen Spaziergang. 🚶"
+          elif [ "$TEMP" -lt 18 ]; then
+            SPRUCH="Richtig schönes Wetter heute! 🙂"
+          elif [ "$TEMP" -lt 21 ]; then
+            SPRUCH="Frühlingshaft warm. 🌤️"
+          elif [ "$TEMP" -lt 24 ]; then
+            SPRUCH="Warm, kurze Ärmel reichen. 😎"
+          elif [ "$TEMP" -lt 27 ]; then
+            SPRUCH="Sommerlich, denk an Wasser trinken. ☀️"
+          elif [ "$TEMP" -lt 30 ]; then
+            SPRUCH="Richtig heiß heute! Sonnencreme nicht vergessen. 🔥"
+          else
+            SPRUCH="Hitzealarm, bleib im Schatten! 🥵"
+          fi
+
           curl -H "Title: Guten Morgen! ☀️" \
-               -d "Wetter heute in Düsseldorf: $WETTER" \
+               -d "$TEMP °C, $BESCHREIBUNG. $SPRUCH" \
                ntfy.sh/vincent-wetter
