@@ -14,4 +14,4 @@ jobs:
           WETTER=$(curl -s "wttr.in/Duesseldorf?format=%C,+%t+(gef%C3%BChlt+%f),+Regen-Chance:+%p")
           curl -H "Title: Guten Morgen! ☀️" \
                -d "Wetter heute in Düsseldorf: $WETTER" \
-               ntfy.sh/lasse-wetter-8271
+               ntfy.sh/vincent-wetter
