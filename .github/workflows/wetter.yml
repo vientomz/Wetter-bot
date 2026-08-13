@@ -11,36 +11,69 @@ jobs:
     steps:
       - name: Wetter abrufen und per ntfy schicken
         run: |
-          BESCHREIBUNG=$(curl -s "wttr.in/Duesseldorf?format=%C&m")
-          TEMP_RAW=$(curl -s "wttr.in/Duesseldorf?format=%t&m")
-          TEMP=$(echo "$TEMP_RAW" | tr -dc '0-9-')
+          STAEDTE=("Duesseldorf" "Erkrath")
+          NACHRICHT=""
+          MAX_REGEN=0
+          DUS_TEMP=0
 
-          if [ "$TEMP" -lt 0 ]; then
+          for STADT in "${STAEDTE[@]}"; do
+            DATA=$(curl -s "wttr.in/${STADT}?format=j1&m")
+
+            TEMP=$(echo "$DATA" | jq -r '.current_condition[0].temp_C')
+            BESCHREIBUNG=$(echo "$DATA" | jq -r '.current_condition[0].weatherDesc[0].value')
+            MORGEN_MIN=$(echo "$DATA" | jq -r '.weather[1].mintempC')
+            MORGEN_MAX=$(echo "$DATA" | jq -r '.weather[1].maxtempC')
+            MORGEN_REGEN=$(echo "$DATA" | jq -r '[.weather[1].hourly[].chanceofrain | tonumber] | max')
+
+            NACHRICHT="${NACHRICHT}📍 ${STADT}: ${TEMP}°C, ${BESCHREIBUNG}
+          Morgen: ${MORGEN_MIN}-${MORGEN_MAX}°C, Regenchance ${MORGEN_REGEN}%
+
+          "
+
+            if [ "$STADT" = "Duesseldorf" ]; then
+              DUS_TEMP=$TEMP
+            fi
+
+            if [ "$MORGEN_REGEN" -gt "$MAX_REGEN" ]; then
+              MAX_REGEN=$MORGEN_REGEN
+            fi
+          done
+
+          if [ "$DUS_TEMP" -lt 0 ]; then
             SPRUCH="Eiskalt, zieh dich warm an! 🥶"
-          elif [ "$TEMP" -lt 3 ]; then
+          elif [ "$DUS_TEMP" -lt 3 ]; then
             SPRUCH="Ziemlich frisch heute. 🧣"
-          elif [ "$TEMP" -lt 6 ]; then
+          elif [ "$DUS_TEMP" -lt 6 ]; then
             SPRUCH="Kalt, aber machbar. 🧤"
-          elif [ "$TEMP" -lt 9 ]; then
+          elif [ "$DUS_TEMP" -lt 9 ]; then
             SPRUCH="Noch kühl, Jacke nicht vergessen. 🧥"
-          elif [ "$TEMP" -lt 12 ]; then
+          elif [ "$DUS_TEMP" -lt 12 ]; then
             SPRUCH="Mild, aber Jacke bleibt Pflicht. 🍂"
-          elif [ "$TEMP" -lt 15 ]; then
+          elif [ "$DUS_TEMP" -lt 15 ]; then
             SPRUCH="Angenehm für nen Spaziergang. 🚶"
-          elif [ "$TEMP" -lt 18 ]; then
+          elif [ "$DUS_TEMP" -lt 18 ]; then
             SPRUCH="Richtig schönes Wetter heute! 🙂"
-          elif [ "$TEMP" -lt 21 ]; then
+          elif [ "$DUS_TEMP" -lt 21 ]; then
             SPRUCH="Frühlingshaft warm. 🌤️"
-          elif [ "$TEMP" -lt 24 ]; then
+          elif [ "$DUS_TEMP" -lt 24 ]; then
             SPRUCH="Warm, kurze Ärmel reichen. 😎"
-          elif [ "$TEMP" -lt 27 ]; then
+          elif [ "$DUS_TEMP" -lt 27 ]; then
             SPRUCH="Sommerlich, denk an Wasser trinken. ☀️"
-          elif [ "$TEMP" -lt 30 ]; then
+          elif [ "$DUS_TEMP" -lt 30 ]; then
             SPRUCH="Richtig heiß heute! Sonnencreme nicht vergessen. 🔥"
           else
             SPRUCH="Hitzealarm, bleib im Schatten! 🥵"
           fi
 
+          WARNUNG=""
+          if [ "$MAX_REGEN" -gt 70 ]; then
+            WARNUNG="⚠️ Morgen hohe Regenwahrscheinlichkeit, Schirm einpacken!
+
+          "
+          fi
+
+          VOLLTEXT="${WARNUNG}${NACHRICHT}${SPRUCH}"
+
           curl -H "Title: Guten Morgen! ☀️" \
-               -d "$TEMP °C, $BESCHREIBUNG. $SPRUCH" \
+               -d "$VOLLTEXT" \
                ntfy.sh/vincent-wetter
